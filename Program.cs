@@ -1,4 +1,5 @@
 ﻿using Raylib_cs;
+using System.Numerics;
 
 namespace chess;
 
@@ -14,6 +15,11 @@ class Program
             Raylib.ClearBackground(Color.White);
 
             Raylib.DrawText("Hello, world!", 12, 12, 20, Color.Black);
+            
+
+
+
+
 
             Raylib.EndDrawing();
         }
