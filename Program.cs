@@ -9,15 +9,24 @@ class Program
     public static List<Chesspiece> chesspieces = new List<Chesspiece>();
     public static void Main()
     {
-        int i = 0;
+        
 
         PlayerCursor myCursor = new PlayerCursor(Vector2.Zero, 0, CursorType.Default);
         PlayerCursor enemyCursor = new PlayerCursor(Vector2.Zero, 0, CursorType.Default);
 
-        var net = new ChessClient(myCursor, enemyCursor);
+        UInt16 myPort = 8080;
+        UInt16 enemyPort = 8082;
+        if (ChessClient.IsPortUsed(myPort))
+        {
+            (myPort, enemyPort) = (enemyPort, myPort);
+        }
+
+        var net = new ChessClient(myCursor, enemyCursor, myPort);
 
         Console.WriteLine($"Listening on port: {net.getPort()}");
-        net.enemyEndpoint = new IPEndPoint(IPAddress.Parse("192.168.0.103"), 8080);
+        net.enemyEndpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), enemyPort);
+
+        int i = 0;
 
         chesspieces.Add(new Chesspiece(i++, new Vector2(0, 0), PieceType.Rook, true));
         chesspieces.Add(new Chesspiece(i++, new Vector2(1, 0), PieceType.Knight, true));
@@ -59,8 +68,10 @@ class Program
 
         while (!Raylib.WindowShouldClose())
         {
+            float dt = Raylib.GetFrameTime();
+
             myCursor.pos = Raylib.GetMousePosition();
-            net.Update();
+            net.Update(dt);
 
             Vector2 WindowSize = new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
             Raylib.BeginDrawing();

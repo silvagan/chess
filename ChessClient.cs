@@ -98,31 +98,51 @@ namespace chess
         public EndPoint? enemyEndpoint;
 
         DateTime? lastCursorSentAt;
+        Vector2 targetEnemyPos;
         public PlayerCursor myCursor;
         public PlayerCursor enemyCursor;
-        public float cursorUpdateRate = 10; // Updates per second
+        public float cursorUpdateRate = 20; // Updates per second
+        public float cursorLerpStrength = 25;
 
         MatchRequest? sentMatchRequest = null;
         MatchRequest? receivedMatchRequest = null;
 
-        public ChessClient(PlayerCursor myCursor, PlayerCursor enemyCursor, int port = 8080)
+        public ChessClient(PlayerCursor myCursor, PlayerCursor enemyCursor, UInt16 port = 8080)
         {
             this.myCursor = myCursor;
             this.enemyCursor = enemyCursor;
+
+            targetEnemyPos = enemyCursor.pos;
 
             unackedMessages = new List<AckableMessage>();
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.Blocking = false;
 
-            var address = IPAddress.Any;
             try
             {
-                socket.Bind(new IPEndPoint(address, port));
+                socket.Bind(new IPEndPoint(IPAddress.Any, port));
             }
             catch (SocketException)
             {
-                socket.Bind(new IPEndPoint(address, 0));
+                socket.Bind(new IPEndPoint(IPAddress.Any, 0));
             }
+        }
+
+        public static bool IsPortUsed(UInt16 port)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            try
+            {
+                socket.Bind(new IPEndPoint(IPAddress.Any, port));
+            } catch (SocketException)
+            {
+                return true;
+            } finally
+            {
+                socket.Close();
+            }
+
+            return false;
         }
 
         public UInt16 getPort()
@@ -155,7 +175,7 @@ namespace chess
             {
                 var payload = CursorPayload.Decode(msg.payload);
 
-                enemyCursor.pos = new Vector2(payload.x, payload.y);
+                targetEnemyPos = new Vector2(payload.x, payload.y);
                 enemyCursor.chessPiece = payload.chessPieceId;
                 enemyCursor.type = payload.type;
             }
@@ -319,7 +339,7 @@ namespace chess
             receivedMatchRequest = null;
         }
 
-        public void Update()
+        public void Update(float dt)
         {
             if (enemyEndpoint != null)
             {
@@ -327,37 +347,48 @@ namespace chess
                 var now = DateTime.Now;
                 if (lastCursorSentAt == null)
                 {
-                    lastCursorSentAt = now.Subtract(TimeSpan.FromSeconds(1 / cursorUpdateRate));
+                    lastCursorSentAt = now.Subtract(cursorUpdateInterval);
                 }
 
                 if (now.Subtract(lastCursorSentAt.Value) > cursorUpdateInterval)
                 {
                     var payload = CursorPayload.FromPlayerCursor(myCursor);
                     SendMessage(enemyEndpoint, MessageType.Cursor, payload.Encode());
+                    lastCursorSentAt = now;
                 }
+
+                enemyCursor.pos = Vector2.Lerp(enemyCursor.pos, targetEnemyPos, cursorLerpStrength * dt);
             }
 
-            if (socket.Available > 0)
+            if (socket.Poll(0, SelectMode.SelectRead))
             {
-                var receivedMessage = ReceiveMessage();
+                // TODO: Remove this try catch
+                try
+                {
+                    var receivedMessage = ReceiveMessage();
 
-                if (receivedMessage.type == MessageType.Ack) {
-                    foreach (var msg in unackedMessages)
-                    {
-                        if (msg.id == receivedMessage.id)
+                    if (receivedMessage.type == MessageType.Ack) {
+                        foreach (var msg in unackedMessages)
                         {
-                            msg.acked = true;
-                            OnMessageAcked(msg);
-                            break;
+                            if (msg.id == receivedMessage.id)
+                            {
+                                msg.acked = true;
+                                OnMessageAcked(msg);
+                                break;
+                            }
                         }
+
+                    } else {
+
+                        OnMessageReceived(receivedMessage);
                     }
 
-                } else {
+                } catch (SocketException)
+                {
 
-                    OnMessageReceived(receivedMessage);
                 }
             }
-            
+
             // TODO: Add retransmittion to messages which were not acked
 
             for (int i = 0; i < unackedMessages.Count; i++)
