@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Numerics;
+using System.Diagnostics.Contracts;
 
 namespace chess
 {
@@ -78,13 +79,32 @@ namespace chess
         public DateTime sentAt;
 
         public EndPoint remote;
+        public MessageType type;
         public UInt16 id;
     };
 
-    public class MatchRequest
+    public class SentMatchRequest
     {
+        public bool received = false;
+        // TODO: public bool timeout = false;
+        
         public EndPoint remote;
+    };
+
+    public class ReceivedMatchRequest
+    {
         public bool cancelled = false;
+
+        public EndPoint remote;
+    };
+
+    public class EnemyInfo
+    {
+        public EndPoint endpoint;
+
+        // TODO:
+        // public uint ping;
+        // public Profile profile;
     };
 
     internal class ChessClient
@@ -104,8 +124,8 @@ namespace chess
         public float cursorUpdateRate = 20; // Updates per second
         public float cursorLerpStrength = 25;
 
-        MatchRequest? sentMatchRequest = null;
-        MatchRequest? receivedMatchRequest = null;
+        SentMatchRequest? sentMatchRequest = null;
+        ReceivedMatchRequest? receivedMatchRequest = null;
 
         public ChessClient(PlayerCursor myCursor, PlayerCursor enemyCursor, UInt16 port = 8080)
         {
@@ -179,11 +199,11 @@ namespace chess
                 enemyCursor.chessPiece = payload.chessPieceId;
                 enemyCursor.type = payload.type;
             }
-            else if (msg.type == MessageType.AcceptMatch)
+            else if (msg.type == MessageType.RequestMatch)
             {
                 if (receivedMatchRequest == null)
                 {
-                    receivedMatchRequest = new MatchRequest();
+                    receivedMatchRequest = new ReceivedMatchRequest();
                     receivedMatchRequest.remote = msg.remote;
                 }
             }
@@ -195,10 +215,32 @@ namespace chess
                     receivedMatchRequest = null;
                 }
             }
+            else if (msg.type == MessageType.AcceptMatch)
+            {
+                if (sentMatchRequest != null)
+                {
+                    enemyEndpoint = sentMatchRequest.remote;
+                    sentMatchRequest = null;
+                }
+            }
+            else if (msg.type == MessageType.RejectMatch)
+            {
+                if (sentMatchRequest != null)
+                {
+                    sentMatchRequest = null;
+                }
+            }
         }
 
         void OnMessageAcked(AckableMessage msg)
         {
+            if (msg.type == MessageType.RequestMatch)
+            {
+                if (sentMatchRequest != null)
+                {
+                    sentMatchRequest.received = true;
+                } 
+            }
         }
 
         void SendMessage(EndPoint remote, MessageType type, Span<byte> payload)
@@ -253,6 +295,7 @@ namespace chess
                 {
                     remote = remote,
                     id = id.Value,
+                    type = type,
                     sentAt = DateTime.Now
                 });
             }
@@ -301,11 +344,11 @@ namespace chess
             };
         }
 
-        public MatchRequest SendMatchRequest(IPEndPoint remote)
+        public SentMatchRequest SendMatchRequest(IPEndPoint remote)
         {
             Debug.Assert(sentMatchRequest == null);
 
-            var matchRequest = new MatchRequest();
+            var matchRequest = new SentMatchRequest();
 
             SendMessage(remote, MessageType.RequestMatch, null);
 
@@ -337,6 +380,21 @@ namespace chess
             SendMessage(receivedMatchRequest.remote, MessageType.RejectMatch, null);
 
             receivedMatchRequest = null;
+        }
+
+        public ReceivedMatchRequest? GetIncomingMatchRequest()
+        {
+            return this.receivedMatchRequest;
+        }
+
+        public EnemyInfo? GetEnemy()
+        {
+            if (enemyEndpoint == null) return null;
+
+            return new EnemyInfo
+            {
+                endpoint = enemyEndpoint
+            };
         }
 
         public void Update(float dt)
