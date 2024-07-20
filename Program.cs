@@ -1,4 +1,5 @@
 ﻿using Raylib_cs;
+using System.Net;
 using System.Numerics;
 
 namespace chess;
@@ -9,6 +10,14 @@ class Program
     public static void Main()
     {
         int i = 0;
+
+        PlayerCursor myCursor = new PlayerCursor(Vector2.Zero, 0, CursorType.Default);
+        PlayerCursor enemyCursor = new PlayerCursor(Vector2.Zero, 0, CursorType.Default);
+
+        var net = new ChessClient(myCursor, enemyCursor);
+
+        Console.WriteLine($"Listening on port: {net.getPort()}");
+        net.enemyEndpoint = new IPEndPoint(IPAddress.Parse("192.168.0.103"), 8080);
 
         chesspieces.Add(new Chesspiece(i++, new Vector2(0, 0), PieceType.Rook, true));
         chesspieces.Add(new Chesspiece(i++, new Vector2(1, 0), PieceType.Knight, true));
@@ -50,16 +59,20 @@ class Program
 
         while (!Raylib.WindowShouldClose())
         {
+            myCursor.pos = Raylib.GetMousePosition();
+            net.Update();
+
             Vector2 WindowSize = new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.White);
 
             Raylib.DrawFPS(12, 12);
             Raylib.HideCursor();
-            var pos = Raylib.GetMousePosition();
             
             DrawBoard(new Vector2(0, 0), WindowSize);
-            Raylib.DrawCircle((int)pos.X, (int)pos.Y, 10, Color.Black);
+
+            Raylib.DrawCircleV(myCursor.pos, 10, Color.Black);
+            Raylib.DrawCircleV(enemyCursor.pos, 10, Color.Red);
 
 
             Raylib.EndDrawing();

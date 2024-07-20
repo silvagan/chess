@@ -219,7 +219,13 @@ namespace chess
                 }
             }
 
-            socket.SendTo(messageBytes, remote);
+            try
+            {
+                socket.SendTo(messageBytes, remote);
+            } catch (SocketException)
+            {
+                return;
+            }
 
             if (needsAck)
             {
