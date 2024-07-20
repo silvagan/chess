@@ -114,7 +114,7 @@ namespace chess
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.Blocking = false;
 
-            var address = IPAddress.Loopback;
+            var address = IPAddress.Any;
             try
             {
                 socket.Bind(new IPEndPoint(address, port));
