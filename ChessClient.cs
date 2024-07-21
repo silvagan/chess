@@ -303,11 +303,19 @@ namespace chess
             }
         }
 
-        ReceivedMessage ReceiveMessage()
+        ReceivedMessage? ReceiveMessage()
         {
             byte[] packet = new byte[255 + 2];
             EndPoint remote = new IPEndPoint(IPAddress.Any, 0);
-            int packetLength = socket.ReceiveFrom(packet, ref remote);
+
+            int packetLength;
+            try
+            {
+                packetLength = socket.ReceiveFrom(packet, ref remote);
+            } catch (SocketException)
+            {
+                return null;
+            }
 
             MessageType messageType = (MessageType)packet[0];
             byte messageLength = packet[1];
@@ -419,11 +427,9 @@ namespace chess
 
             if (socket.Poll(0, SelectMode.SelectRead))
             {
-                // TODO: Remove this try catch
-                try
+                var receivedMessage = ReceiveMessage();
+                if (receivedMessage != null)
                 {
-                    var receivedMessage = ReceiveMessage();
-
                     if (receivedMessage.type == MessageType.Ack) {
                         foreach (var msg in unackedMessages)
                         {
@@ -439,11 +445,8 @@ namespace chess
 
                         OnMessageReceived(receivedMessage);
                     }
-
-                } catch (SocketException)
-                {
-
                 }
+
             }
 
             // TODO: Add retransmittion to messages which were not acked

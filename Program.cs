@@ -11,6 +11,7 @@ class Program
     public static List<Chesspiece> chesspieces = new List<Chesspiece>();
     public static PlayerCursor myCursor = new PlayerCursor(Vector2.Zero, 0, CursorType.Default);
     public static PlayerCursor enemyCursor = new PlayerCursor(Vector2.Zero, 0, CursorType.Default);
+    public static Profile myProfile = new Profile("<unknown>", 0, 0);
     public static ChessClient net;
 
     // Main menu specific variables
@@ -18,6 +19,11 @@ class Program
     public static sbyte[] connectIp = new sbyte[16];
     public static bool editConnectPort = false;
     public static sbyte[] connectPort = new sbyte[16];
+
+    // First time setup specific variables
+    public static bool firstTimeSetup = false;
+    public static bool editName = false;
+    public static sbyte[] name = new sbyte[32];
 
     public static void Main()
     {
@@ -35,8 +41,13 @@ class Program
             CopyString($"{enemyPort}", connectPort);
         }
 
+        if (!myProfile.Load())
+        {
+            firstTimeSetup = true;
+        }
+
         net = new ChessClient(myCursor, enemyCursor, myPort);
-        //net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
+        net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
 
         {
             int i = 0;
@@ -78,14 +89,20 @@ class Program
         Raylib.SetTargetFPS(144);
         Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(1000, 1000, "Chess innit");
+
         RayGui.GuiLoadStyleDefault();
+        RayGui.GuiSetStyle(0, 16, 30);
+        RayGui.GuiSetStyle(0, 20, 3);
 
         while (!Raylib.WindowShouldClose())
         {
             float dt = Raylib.GetFrameTime();
             net.Update(dt);
 
-            if (net.GetEnemy() == null)
+            if (firstTimeSetup)
+            {
+                ShowFirstTimeSetup(dt);
+            } else if (net.GetEnemy() == null)
             {
                 ShowMainMenuScreen(dt);
             } else
@@ -120,16 +137,52 @@ class Program
         return new string(chars, 0, strLength);
     }
 
+    public static void ShowFirstTimeSetup(float dt)
+    {
+        Raylib.BeginDrawing();
+        Raylib.ClearBackground(Raylib.WHITE);
+
+        var windowRect = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+
+        var stack = new VerticalStack
+        {
+            gap = 20,
+            position = RectUtils.GetCenteredPosition(windowRect, new Vector2(200, 300))
+        };
+
+        RayGui.GuiLabel(stack.nextRectangle(100, 50), $"Name");
+
+        unsafe
+        {
+            fixed (sbyte* namePtr = name)
+            {
+                if (RayGui.GuiTextBox(stack.nextRectangle(200, 50), namePtr, 30, editName))
+                {
+                    editName = !editName;
+                }
+            }
+        }
+
+        var nameStr = ConvertToStringFrombytes(name);
+        if (nameStr.Length > 0)
+        {
+            if (RayGui.GuiButton(stack.nextRectangle(150, 50), "Continue"))
+            {
+                firstTimeSetup = false;
+                myProfile.name = nameStr;
+                myProfile.Save();
+            }
+        }
+
+        Raylib.EndDrawing();
+    }
+
     public static void ShowMainMenuScreen(float dt)
     {
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Raylib.WHITE);
 
-        RayGui.GuiSetStyle(0, 16, 30);
-        RayGui.GuiSetStyle(0, 20, 3);
-
-        var windowSize = new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
-        var windowRect = new Rectangle(0, 0, windowSize.X, windowSize.Y);
+        var windowRect = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
 
         if (net.receivedMatchRequest != null)
         {
