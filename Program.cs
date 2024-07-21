@@ -442,11 +442,22 @@ class Program
                     if (Math.Abs(nextPos.X - piece.pos.X) == Math.Abs(nextPos.Y - piece.pos.Y))
                     {
                         bool decreasingY = false;
-                        if (nextPos.Y < piece.pos.Y)
+
+                        int j = (int)nextPos.Y;
+                        if (piece.pos.X < nextPos.X)
+                        {
+                            j = (int)piece.pos.Y;
+                        }
+
+                        if (j > Math.Min(piece.pos.Y, nextPos.Y))
+                        {
                             decreasingY = true;
-                        int j = Math.Min((int)piece.pos.Y, (int)nextPos.Y)+1;
-                        if (decreasingY)
-                            j = Math.Max((int)piece.pos.Y, (int)nextPos.Y)-1;
+                            j--;
+                        }
+                        else
+                        {
+                            j++;
+                        }
 
                         bool pathObstructed = false;
                         for (int i = Math.Min((int)piece.pos.X, (int)nextPos.X) + 1; i < Math.Max((int)piece.pos.X, (int)nextPos.X); i++)
@@ -473,16 +484,27 @@ class Program
 
                     }
                 }
-                else if (!piece.isWhite)
+                else if (!piece.isWhite && net.enemyInfo.isWhite)
                 {
                     if (Math.Abs(nextPos.X - piece.pos.X) == Math.Abs(nextPos.Y - piece.pos.Y))
                     {
                         bool decreasingY = false;
-                        if (nextPos.Y < piece.pos.Y)
+
+                        int j = (int)nextPos.Y;
+                        if (piece.pos.X < nextPos.X)
+                        {
+                            j = (int)piece.pos.Y;
+                        }
+
+                        if (j > Math.Min(piece.pos.Y, nextPos.Y))
+                        {
                             decreasingY = true;
-                        int j = Math.Min((int)piece.pos.Y, (int)nextPos.Y) + 1;
-                        if (decreasingY)
-                            j = Math.Max((int)piece.pos.Y, (int)nextPos.Y) - 1;
+                            j--;
+                        }
+                        else
+                        {
+                            j++;
+                        }
 
                         bool pathObstructed = false;
                         for (int i = Math.Min((int)piece.pos.X, (int)nextPos.X) + 1; i < Math.Max((int)piece.pos.X, (int)nextPos.X); i++)
@@ -506,7 +528,6 @@ class Program
                                 chesspieces.Remove(getAtPosition((int)nextPos.X, (int)nextPos.Y));
                             return true;
                         }
-
                     }
                 }
             }
