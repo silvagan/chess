@@ -47,7 +47,7 @@ class Program
         }
 
         net = new ChessClient(myCursor, enemyCursor, myPort);
-        net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
+        //net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
 
         {
             int i = 0;
