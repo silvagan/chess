@@ -6,6 +6,7 @@ namespace chess
     internal enum CursorType
     {
         Default,
+        Hidden,
         Grab
     }
 
