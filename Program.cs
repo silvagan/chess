@@ -75,8 +75,8 @@ class Program
             chesspieces.Add(new Chesspiece(i++, new Vector2(5, 1), PieceType.Pawn, false));
             chesspieces.Add(new Chesspiece(i++, new Vector2(6, 1), PieceType.Pawn, false));
             chesspieces.Add(new Chesspiece(i++, new Vector2(7, 1), PieceType.Pawn, false));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 0), PieceType.King, false));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 0), PieceType.Queen, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 0), PieceType.Queen, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 0), PieceType.King, false));
 
             chesspieces.Add(new Chesspiece(i++, new Vector2(0, 7), PieceType.Rook, true));
             chesspieces.Add(new Chesspiece(i++, new Vector2(1, 7), PieceType.Knight, true));
@@ -92,8 +92,8 @@ class Program
             chesspieces.Add(new Chesspiece(i++, new Vector2(5, 6), PieceType.Pawn, true));
             chesspieces.Add(new Chesspiece(i++, new Vector2(6, 6), PieceType.Pawn, true));
             chesspieces.Add(new Chesspiece(i++, new Vector2(7, 6), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 7), PieceType.King, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 7), PieceType.Queen, true));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 7), PieceType.Queen, true));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 7), PieceType.King, true));
         }
 
         Raylib.SetTargetFPS(144);
