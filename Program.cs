@@ -1,4 +1,5 @@
 ﻿using Raylib_CsLo;
+using System;
 using System.Drawing;
 using System.Net;
 using System.Numerics;
@@ -28,6 +29,9 @@ class Program
     public static bool firstTimeSetup = false;
     public static bool editName = false;
     public static sbyte[] name = new sbyte[32];
+
+    public static Texture[] whitePieceTextures = new Texture[Enum.GetNames(typeof(PieceType)).Length];
+    public static Texture[] blackPieceTextures = new Texture[Enum.GetNames(typeof(PieceType)).Length];
 
     public static void Main()
     {
@@ -99,6 +103,22 @@ class Program
         RayGui.GuiLoadStyleDefault();
         RayGui.GuiSetStyle(0, 16, 30);
         RayGui.GuiSetStyle(0, 20, 3);
+
+        {
+            whitePieceTextures[(int)PieceType.Pawn  ] = Raylib.LoadTexture("assets/images/chess pieces/w_pawn_png_128px.png");
+            whitePieceTextures[(int)PieceType.Bishop] = Raylib.LoadTexture("assets/images/chess pieces/w_bishop_png_128px.png");
+            whitePieceTextures[(int)PieceType.King  ] = Raylib.LoadTexture("assets/images/chess pieces/w_king_png_128px.png");
+            whitePieceTextures[(int)PieceType.Knight] = Raylib.LoadTexture("assets/images/chess pieces/w_knight_png_128px.png");
+            whitePieceTextures[(int)PieceType.Rook  ] = Raylib.LoadTexture("assets/images/chess pieces/w_rook_png_128px.png");
+            whitePieceTextures[(int)PieceType.Queen ] = Raylib.LoadTexture("assets/images/chess pieces/w_rook_png_128px.png");
+
+            blackPieceTextures[(int)PieceType.Pawn  ] = Raylib.LoadTexture("assets/images/chess pieces/b_pawn_png_128px.png");
+            blackPieceTextures[(int)PieceType.Bishop] = Raylib.LoadTexture("assets/images/chess pieces/b_bishop_png_128px.png");
+            blackPieceTextures[(int)PieceType.King  ] = Raylib.LoadTexture("assets/images/chess pieces/b_king_png_128px.png");
+            blackPieceTextures[(int)PieceType.Knight] = Raylib.LoadTexture("assets/images/chess pieces/b_knight_png_128px.png");
+            blackPieceTextures[(int)PieceType.Rook  ] = Raylib.LoadTexture("assets/images/chess pieces/b_rook_png_128px.png");
+            blackPieceTextures[(int)PieceType.Queen ] = Raylib.LoadTexture("assets/images/chess pieces/b_rook_png_128px.png");
+        }
 
         while (!Raylib.WindowShouldClose())
         {
@@ -602,6 +622,20 @@ class Program
         return null;
     }
 
+    public static void DrawChessPiece(bool white, PieceType type, float x, float y, float size)
+    {
+        Texture texture;
+        if (white)
+        {
+            texture = whitePieceTextures[(int)type];
+        } else
+        {
+            texture = blackPieceTextures[(int)type];
+        }
+        
+        Raylib.DrawTextureEx(texture, new Vector2(x - size / 2, y - size / 2), 0, size / texture.width, Raylib.WHITE);
+    }
+
     public static void DrawBoard(Vector2 min, Vector2 max, Vector2 offset)
     {
         RlGl.rlPushMatrix();
@@ -631,32 +665,11 @@ class Program
         Raylib.DrawText($"{myProfile.name} vs {net.enemyInfo.profile.name}", size * 8.1f, size * 0.1f, size * 0.25f, Raylib.BLACK);
 
         float center = (float)(size / 2 * 0.9 +(int)size / 10);
+
+        float chessPieceSize = size * 0.45f;
         foreach (Chesspiece piece in chesspieces)
         {
-            if (piece.type == PieceType.Pawn)
-            {
-                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Raylib.DARKGRAY);
-            }
-            if (piece.type == PieceType.Rook)
-            {
-                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Raylib.DARKPURPLE);
-            }
-            if (piece.type == PieceType.Bishop)
-            {
-                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Raylib.DARKBLUE);
-            }
-            if (piece.type == PieceType.Knight)
-            {
-                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Raylib.DARKGREEN);
-            }
-            if (piece.type == PieceType.King)
-            {
-                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Raylib.RED);
-            }
-            if (piece.type == PieceType.Queen)
-            {
-                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Raylib.DARKBROWN);
-            }
+            DrawChessPiece(piece.isWhite, piece.type, (size * piece.pos.X) + center, (size * piece.pos.Y) + center, chessPieceSize);
         }
         RlGl.rlPopMatrix();
     }
