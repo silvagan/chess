@@ -67,21 +67,19 @@ class Program
         Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(1000, 1000, "Chess innit");
 
+        bool hold = false;
+        Chesspiece heldChesspiece;
+        Vector2 prevPos;
+
         while (!Raylib.WindowShouldClose())
         {
             float dt = Raylib.GetFrameTime();
 
             net.Update(dt);
 
-
-
-
-
             Vector2 WindowSize = new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Raylib.WHITE);
-
-
 
             Raylib.DrawFPS(12, 12);
             Raylib.HideCursor();
@@ -101,10 +99,38 @@ class Program
             myCursor.pos = new Vector2 (sector.X/11, sector.Y/8);
             DrawBoard(new Vector2(0, 0), WindowSize, offset);
 
+            int x = (int)Math.Ceiling(sector.X);
+            int y = (int)Math.Ceiling(sector.Y);
+
             if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
             {
-                Console.WriteLine(sector);
+
+                Chesspiece piece = getAtPosition(x,y);
+                if (piece != null)
+                {
+                    hold = true;
+                    prevPos = piece.pos;
+                    heldChesspiece = piece;
+                }
             }
+
+            if (hold == true)
+            {
+                heldChesspiece.pos = prevPos;
+            }
+
+            if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT) && hold == true)
+            {
+                hold = false;
+            }
+
+            if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT) && hold == true)
+            {
+
+            }
+
+
+
 
             Raylib.DrawCircleV(new Vector2(myCursor.pos.X * 11, myCursor.pos.Y * 8) * size + offset, 10, Raylib.BLACK);
             Raylib.DrawCircleV(new Vector2(enemyCursor.pos.X * 11, enemyCursor.pos.Y * 8) * size + offset, 10, Raylib.RED);
@@ -114,6 +140,14 @@ class Program
         }
 
         Raylib.CloseWindow();
+    }
+
+    public static Chesspiece getAtPosition(int x, int y)
+    {
+        foreach (Chesspiece piece in chesspieces)
+            if (piece.pos == new Vector2(x, y))
+                return piece;
+        return null;
     }
 
     public static void DrawBoard(Vector2 min, Vector2 max, Vector2 offset)
