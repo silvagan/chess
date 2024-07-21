@@ -371,6 +371,8 @@ class Program
 
     public static bool MoveValid(Chesspiece piece, Vector2 nextPos)
     {
+        if (piece.pos == nextPos)
+            return false;
         if (0 <= nextPos.X && nextPos.X <= 7 && 0 <= nextPos.Y && nextPos.Y <= 7)
         {
             if (piece.type == PieceType.Pawn)
@@ -487,11 +489,97 @@ class Program
             }
             if (piece.type == PieceType.Knight)
             {
-
+                if (piece.isWhite && !net.enemyInfo.isWhite)
+                {
+                    if (Math.Abs(nextPos.X - piece.pos.X) == 2 && Math.Abs(nextPos.Y - piece.pos.Y) == 1 || Math.Abs(nextPos.Y - piece.pos.Y) == 2 && Math.Abs(nextPos.X - piece.pos.X) == 1)
+                    {
+                        if (getAtPosition((int)nextPos.X, (int)nextPos.Y) != null)
+                            chesspieces.Remove(getAtPosition((int)nextPos.X, (int)nextPos.Y));
+                        return true;
+                    }
+                }
+                else if (!piece.isWhite)
+                {
+                    if (Math.Abs(nextPos.X - piece.pos.X) == 2 && Math.Abs(nextPos.Y - piece.pos.Y) == 1 || Math.Abs(nextPos.Y - piece.pos.Y) == 2 && Math.Abs(nextPos.X - piece.pos.X) == 1)
+                    {
+                        if (getAtPosition((int)nextPos.X, (int)nextPos.Y) != null)
+                            chesspieces.Remove(getAtPosition((int)nextPos.X, (int)nextPos.Y));
+                        return true;
+                    }
+                }
             }
             if (piece.type == PieceType.Rook)
             {
-
+                if (piece.isWhite && !net.enemyInfo.isWhite)
+                {
+                    if (Math.Abs(nextPos.Y - piece.pos.Y) > 0 && Math.Abs(nextPos.X - piece.pos.X) == 0 || Math.Abs(nextPos.X - piece.pos.X) > 0 && Math.Abs(nextPos.Y - piece.pos.Y) == 0)
+                    {
+                        bool pathObstructed = false;
+                        bool horizontal = true;
+                        int start = Math.Min((int)nextPos.X, (int)piece.pos.X);
+                        int end = Math.Max((int)nextPos.X, (int)piece.pos.X);
+                        if (start == end)
+                        {
+                            horizontal = false;
+                            start = Math.Min((int)nextPos.Y, (int)piece.pos.Y);
+                            end = Math.Max((int)nextPos.Y, (int)piece.pos.Y);
+                        }
+                        for (int i = start + 1; i < end - 1; i++)
+                        {
+                            if (horizontal && getAtPosition(i, (int)piece.pos.Y) != null)
+                            {
+                                pathObstructed = true;
+                            }
+                            else if (!horizontal && getAtPosition((int)piece.pos.Y, i) != null)
+                            {
+                                pathObstructed = true;
+                            }
+                        }
+                        if (!pathObstructed)
+                        {
+                            if (getAtPosition((int)movePos.X, (int)movePos.Y) != null)
+                            {
+                                chesspieces.Remove(getAtPosition((int)movePos.X, (int)movePos.Y));
+                            }
+                            return true;
+                        }
+                    }
+                }
+                else if (!piece.isWhite && net.enemyInfo.isWhite)
+                {
+                    if (Math.Abs(nextPos.Y - piece.pos.Y) > 0 && Math.Abs(nextPos.X - piece.pos.X) == 0 || Math.Abs(nextPos.X - piece.pos.X) > 0 && Math.Abs(nextPos.Y - piece.pos.Y) == 0)
+                    {
+                        bool pathObstructed = false;
+                        bool horizontal = true;
+                        int start = Math.Min((int)nextPos.X, (int)piece.pos.X);
+                        int end = Math.Max((int)nextPos.X, (int)piece.pos.X);
+                        if (start == end)
+                        {
+                            horizontal = false;
+                            start = Math.Min((int)nextPos.Y, (int)piece.pos.Y);
+                            end = Math.Max((int)nextPos.Y, (int)piece.pos.Y);
+                        }
+                        for (int i = start + 1; i < end - 1; i++)
+                        {
+                            if (horizontal && getAtPosition(i, (int)piece.pos.Y) != null)
+                            {
+                                pathObstructed = true;
+                            }
+                            else if (!horizontal && getAtPosition((int)piece.pos.Y, i) != null)
+                            {
+                                pathObstructed = true;
+                            }
+                        }
+                        if (!pathObstructed)
+                        {
+                            if (getAtPosition((int)movePos.X, (int)movePos.Y) != null)
+                            {
+                                chesspieces.Remove(getAtPosition((int)movePos.X, (int)movePos.Y));
+                            }
+                            return true;
+                        }
+                    }
+                }
             }
             if (piece.type == PieceType.Queen)
             {
