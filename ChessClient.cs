@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Reflection;
 
 namespace chess
 {
@@ -20,6 +21,8 @@ namespace chess
         CancelMatch,
         AcceptMatch,
         RejectMatch,
+
+        MovePiece,
 
         Cursor
     };
@@ -95,6 +98,30 @@ namespace chess
         }
     }
 
+    struct MovePiecePayload
+    {
+        public byte pieceId;
+        public byte x, y;
+
+        public byte[] Encode()
+        {
+            var payload = new byte[3];
+            payload[0] = pieceId;
+            payload[1] = x;
+            payload[2] = y;
+            return payload;
+        }
+
+        public static MovePiecePayload Decode(byte[] payload)
+        {
+            return new MovePiecePayload {
+                pieceId = payload[0],
+                x = payload[1],
+                y = payload[2]
+            };
+        }
+    }
+
     class ReceivedMessage
     {
         public EndPoint remote;
@@ -141,6 +168,12 @@ namespace chess
         // public uint ping;
     };
 
+    public class PieceMoved
+    {
+        public int pieceId;
+        public int x, y;
+    }
+
     internal class ChessClient
     {
         UInt16 lastMessageId = 0;
@@ -150,6 +183,7 @@ namespace chess
         Socket socket;
 
         public EnemyInfo enemyInfo;
+        PieceMoved? enemyMove;
 
         DateTime? lastCursorSentAt;
         Vector2 targetEnemyPos;
@@ -274,6 +308,14 @@ namespace chess
                     sentMatchRequest.rejected = true;
                     sentMatchRequest = null;
                 }
+            }
+            else if (msg.type == MessageType.MovePiece)
+            {
+                var payload = MovePiecePayload.Decode(msg.payload);
+                enemyMove = new PieceMoved();
+                enemyMove.pieceId = payload.pieceId;
+                enemyMove.x = payload.x;
+                enemyMove.y = payload.y;
             }
         }
 
@@ -431,6 +473,33 @@ namespace chess
             enemyInfo.isWhite = true;
 
             receivedMatchRequest = null;
+        }
+
+        public void MovePiece(int pieceId, int x, int y)
+        {
+            if (enemyInfo.endpoint == null) return;
+
+            Debug.Assert(0 <= pieceId && pieceId <= 255);
+            Debug.Assert(0 <= x && x <= 255);
+            Debug.Assert(0 <= y && y <= 255);
+
+            var payload = new MovePiecePayload
+            {
+                pieceId = (byte)pieceId,
+                x = (byte)x,
+                y = (byte)y
+            };
+            SendMessage(enemyInfo.endpoint, MessageType.MovePiece, payload.Encode());
+        }
+
+        public PieceMoved? GetEnemyMove()
+        {
+            var move = enemyMove;
+            if (move != null)
+            {
+                enemyMove = null;
+            }
+            return move;
         }
 
         public void RejectMatchRequest()
