@@ -339,10 +339,21 @@ class Program
         {
             hold = false;
             if (MoveValid(heldChesspiece, movePos))
-                heldChesspiece.pos = movePos;
-            else
             {
-                
+                heldChesspiece.pos = movePos;
+                net.MovePiece(heldChesspiece.key, (int)heldChesspiece.pos.X, (int)heldChesspiece.pos.Y);
+            }
+        }
+
+        var enemyMove = net.GetEnemyMove();
+        if (enemyMove != null)
+        {
+            foreach (var chessPiece in chesspieces)
+            {
+                if (chessPiece.key == enemyMove.pieceId)
+                {
+                    chessPiece.pos = new Vector2(enemyMove.x, enemyMove.y);
+                }
             }
         }
 
