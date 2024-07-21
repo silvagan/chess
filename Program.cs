@@ -52,7 +52,7 @@ class Program
 
         //-----------------------------------------------------------------
         net = new ChessClient(myCursor, enemyCursor, myPort);
-        net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
+        //net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
         //----------------------^------------------------------------------
 
         {
@@ -108,7 +108,7 @@ class Program
             if (firstTimeSetup)
             {
                 ShowFirstTimeSetup(dt);
-            } else if (net.GetEnemy() == null)
+            } else if (!net.enemyInfo.acceptedMatch)
             {
                 ShowMainMenuScreen(dt);
             } else
@@ -198,11 +198,11 @@ class Program
                 position = RectUtils.GetCenteredPosition(windowRect, new Vector2(200, 300))
             };
 
-            RayGui.GuiLabel(stack.nextRectangle(100, 50), $"Got match request");
+            RayGui.GuiLabel(stack.nextRectangle(100, 50), $"Got match request from '{net.receivedMatchRequest.profile.name}'");
 
             if (RayGui.GuiButton(stack.nextRectangle(150, 50), "Accept"))
             {
-                net.AcceptMatchRequest();
+                net.AcceptMatchRequest(myProfile);
             }
 
             if (RayGui.GuiButton(stack.nextRectangle(150, 50), "Reject"))
@@ -270,7 +270,7 @@ class Program
 
                     if (parsePort && parseIp && ipAddress != null)
                     {
-                        net.SendMatchRequest(new IPEndPoint(ipAddress, port));
+                        net.SendMatchRequest(myProfile, new IPEndPoint(ipAddress, port));
                     }
                 }
             }
@@ -470,7 +470,9 @@ class Program
                     Raylib.DrawRectangle((int)(size * i) + (int)size / 10, (int)(size * j) + (int)size / 10, (int)(size * 0.9), (int)(size * 0.9), Raylib.BLACK);
             }
         }
-        Raylib.DrawRectangle((int)size * 10, (int)(0 + 10), (int)(size), (int)(size / 2), Raylib.GRAY);
+
+        Raylib.DrawText($"{myProfile.name} vs {net.enemyInfo.profile.name}", size * 8.1f, size * 0.1f, size * 0.25f, Raylib.BLACK);
+
         float center = (float)(size / 2 * 0.9 +(int)size / 10);
         foreach (Chesspiece piece in chesspieces)
         {

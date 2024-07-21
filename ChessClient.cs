@@ -65,6 +65,36 @@ namespace chess
         }
     };
 
+    struct RequestMatchPayload
+    {
+        public Profile profile;
+
+        public byte[] Encode()
+        {
+            return profile.Encode();
+        }
+
+        public static RequestMatchPayload Decode(byte[] payload)
+        {
+            return new RequestMatchPayload { profile = Profile.Decode(payload) };
+        }
+    }
+
+    struct AcceptMatchPayload
+    {
+        public Profile profile;
+
+        public byte[] Encode()
+        {
+            return profile.Encode();
+        }
+
+        public static RequestMatchPayload Decode(byte[] payload)
+        {
+            return new RequestMatchPayload { profile = Profile.Decode(payload) };
+        }
+    }
+
     class ReceivedMessage
     {
         public EndPoint remote;
@@ -96,16 +126,19 @@ namespace chess
     {
         public bool cancelled = false;
 
+        public Profile profile;
         public EndPoint remote;
     };
 
     public class EnemyInfo
     {
-        public EndPoint endpoint;
+        public bool isWhite = false;
+        public bool acceptedMatch = false;
+        public EndPoint? endpoint = null;
+        public Profile profile;
 
         // TODO:
         // public uint ping;
-        // public Profile profile;
     };
 
     internal class ChessClient
@@ -116,7 +149,7 @@ namespace chess
         // TODO: TimeSpan retransmitInterval = TimeSpan.FromSeconds(1);
         Socket socket;
 
-        public EndPoint? enemyEndpoint;
+        public EnemyInfo enemyInfo;
 
         DateTime? lastCursorSentAt;
         Vector2 targetEnemyPos;
@@ -135,6 +168,7 @@ namespace chess
 
             targetEnemyPos = enemyCursor.pos;
 
+            enemyInfo = new EnemyInfo();
             unackedMessages = new List<AckableMessage>();
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.Blocking = false;
@@ -204,8 +238,11 @@ namespace chess
             {
                 if (receivedMatchRequest == null)
                 {
+                    var payload = RequestMatchPayload.Decode(msg.payload);
+
                     receivedMatchRequest = new ReceivedMatchRequest();
                     receivedMatchRequest.remote = msg.remote;
+                    receivedMatchRequest.profile = payload.profile;
                 }
             }
             else if (msg.type == MessageType.CancelMatch)
@@ -220,7 +257,13 @@ namespace chess
             {
                 if (sentMatchRequest != null)
                 {
-                    enemyEndpoint = sentMatchRequest.remote;
+                    var payload = AcceptMatchPayload.Decode(msg.payload);
+
+                    enemyInfo.endpoint = sentMatchRequest.remote;
+                    enemyInfo.profile = payload.profile;
+                    enemyInfo.acceptedMatch = true;
+                    enemyInfo.isWhite = false;
+
                     sentMatchRequest = null;
                 }
             }
@@ -354,14 +397,15 @@ namespace chess
             };
         }
 
-        public void SendMatchRequest(IPEndPoint remote)
+        public void SendMatchRequest(Profile myProfile, IPEndPoint remote)
         {
             Debug.Assert(sentMatchRequest == null);
 
             var matchRequest = new SentMatchRequest();
             matchRequest.remote = remote;
 
-            SendMessage(remote, MessageType.RequestMatch, null);
+            var payload = new RequestMatchPayload{ profile = myProfile };
+            SendMessage(remote, MessageType.RequestMatch, payload.Encode());
 
             sentMatchRequest = matchRequest;
         }
@@ -375,12 +419,16 @@ namespace chess
             sentMatchRequest = null;
         }
 
-        public void AcceptMatchRequest()
+        public void AcceptMatchRequest(Profile profile)
         {
             if (receivedMatchRequest == null) return;
 
-            SendMessage(receivedMatchRequest.remote, MessageType.AcceptMatch, null);
-            enemyEndpoint = receivedMatchRequest.remote;
+            var payload = new AcceptMatchPayload { profile = profile };
+            SendMessage(receivedMatchRequest.remote, MessageType.AcceptMatch, payload.Encode());
+            enemyInfo.endpoint = receivedMatchRequest.remote;
+            enemyInfo.profile = receivedMatchRequest.profile;
+            enemyInfo.acceptedMatch = true;
+            enemyInfo.isWhite = true;
 
             receivedMatchRequest = null;
         }
@@ -394,19 +442,9 @@ namespace chess
             receivedMatchRequest = null;
         }
 
-        public EnemyInfo? GetEnemy()
-        {
-            if (enemyEndpoint == null) return null;
-
-            return new EnemyInfo
-            {
-                endpoint = enemyEndpoint
-            };
-        }
-
         public void Update(float dt)
         {
-            if (enemyEndpoint != null)
+            if (enemyInfo.endpoint != null)
             {
                 var cursorUpdateInterval = TimeSpan.FromSeconds(1 / cursorUpdateRate);
                 var now = DateTime.Now;
@@ -418,7 +456,7 @@ namespace chess
                 if (now.Subtract(lastCursorSentAt.Value) > cursorUpdateInterval)
                 {
                     var payload = CursorPayload.FromPlayerCursor(myCursor);
-                    SendMessage(enemyEndpoint, MessageType.Cursor, payload.Encode());
+                    SendMessage(enemyInfo.endpoint, MessageType.Cursor, payload.Encode());
                     lastCursorSentAt = now;
                 }
 
