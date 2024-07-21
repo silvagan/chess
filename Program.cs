@@ -368,6 +368,10 @@ class Program
         var enemyMove = net.GetEnemyMove();
         if (enemyMove != null)
         {
+            if (getAtPosition(enemyMove.x, enemyMove.y) != null)
+            {
+                chesspieces.Remove(getAtPosition(enemyMove.x, enemyMove.y));
+            }
             foreach (var chessPiece in chesspieces)
             {
                 if (chessPiece.key == enemyMove.pieceId)
