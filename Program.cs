@@ -20,6 +20,10 @@ class Program
     public static bool editConnectPort = false;
     public static sbyte[] connectPort = new sbyte[16];
 
+    public static bool hold = false;
+    public static Chesspiece heldChesspiece;
+    public static Vector2 movePos;
+
     // First time setup specific variables
     public static bool firstTimeSetup = false;
     public static bool editName = false;
@@ -298,14 +302,50 @@ class Program
 
         DrawBoard(new Vector2(0, 0), WindowSize, offset);
 
+        int x = (int)Math.Floor(sector.X);
+        int y = (int)Math.Floor(sector.Y);
+
+        Vector2 cursorPos = new Vector2(myCursor.pos.X * 11, myCursor.pos.Y * 8) * size + offset;
+
         if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
         {
-            Console.WriteLine(sector);
+
+            Chesspiece piece = getAtPosition(x,y);
+            if (piece != null)
+            {
+                hold = true;
+                heldChesspiece = piece;
+                movePos = new Vector2(x, y);
+            }
+        }
+
+        if (hold == true)
+        {
+            Raylib.DrawCircle((int)(size * x) + (int)(float)(size / 2 * 0.9 + (int)size / 10) + (int)offset.X, (int)(size * y) + (int)(float)(size / 2 * 0.9 + (int)size / 10) + (int)offset.Y, size / 4, Raylib.SKYBLUE);
+            movePos = new Vector2(x, y);
+            //heldChesspiece.pos = new Vector2(x,y);
+        }
+
+        if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT) && hold == true)
+        {
+            hold = false;
+            Console.WriteLine(cursorPos);
+        }
+
+        if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT) && hold == true)
+        {
+            hold = false;
+            if (MoveValid(heldChesspiece, movePos))
+                heldChesspiece.pos = movePos;
+            else
+            {
+                
+            }
         }
 
         if (myCursor.type != CursorType.Hidden)
         {
-            Raylib.DrawCircleV(new Vector2(myCursor.pos.X * 11, myCursor.pos.Y * 8) * size + offset, 10, Raylib.BLACK);
+            Raylib.DrawCircleV(cursorPos, 10, Raylib.BLACK);
         }
         if (enemyCursor.type != CursorType.Hidden)
         {
@@ -313,6 +353,37 @@ class Program
         }
 
         Raylib.EndDrawing();
+    }
+
+    public static bool MoveValid(Chesspiece piece, Vector2 nextPos)
+    {
+        if (piece.type == PieceType.Pawn)
+        {
+            if (piece.isWhite)
+            {
+                if (nextPos == new Vector2(piece.pos.X, piece.pos.Y - 1))
+                    return true;
+                else if (nextPos == new Vector2(piece.pos.X - 1, piece.pos.Y - 1) && getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y - 1) != null)
+                {
+                    chesspieces.Remove(getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y - 1));
+                    return true;
+                }
+                else if (nextPos == new Vector2(piece.pos.X + 1, piece.pos.Y - 1) && getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y - 1) != null)
+                {
+                    chesspieces.Remove(getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y - 1));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static Chesspiece getAtPosition(int x, int y)
+    {
+        foreach (Chesspiece piece in chesspieces)
+            if (piece.pos == new Vector2(x, y))
+                return piece;
+        return null;
     }
 
     public static void DrawBoard(Vector2 min, Vector2 max, Vector2 offset)
