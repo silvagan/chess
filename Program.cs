@@ -385,7 +385,6 @@ class Program
         {
             Raylib.DrawCircleV(new Vector2(enemyCursor.pos.X * 11, enemyCursor.pos.Y * 8) * size + offset, 10, Raylib.RED);
         }
-
         Raylib.EndDrawing();
     }
 
@@ -432,7 +431,7 @@ class Program
                     }
                 }
             }
-            if (piece.type == PieceType.Bishop)
+            if (piece.type == PieceType.Bishop || piece.type == PieceType.Queen)
             {
                 if (piece.isWhite && !net.enemyInfo.isWhite)
                 {
@@ -446,7 +445,7 @@ class Program
                             j = Math.Max((int)piece.pos.Y, (int)nextPos.Y)-1;
 
                         bool pathObstructed = false;
-                        for (int i = Math.Min((int)piece.pos.X, (int)nextPos.X) + 1; i < Math.Max((int)piece.pos.X, (int)nextPos.X)-1; i++)
+                        for (int i = Math.Min((int)piece.pos.X, (int)nextPos.X) + 1; i < Math.Max((int)piece.pos.X, (int)nextPos.X); i++)
                         {
                             if (decreasingY)
                             {
@@ -482,7 +481,7 @@ class Program
                             j = Math.Max((int)piece.pos.Y, (int)nextPos.Y) - 1;
 
                         bool pathObstructed = false;
-                        for (int i = Math.Min((int)piece.pos.X, (int)nextPos.X) + 1; i < Math.Max((int)piece.pos.X, (int)nextPos.X) - 1; i++)
+                        for (int i = Math.Min((int)piece.pos.X, (int)nextPos.X) + 1; i < Math.Max((int)piece.pos.X, (int)nextPos.X); i++)
                         {
                             if (decreasingY)
                             {
@@ -528,7 +527,7 @@ class Program
                     }
                 }
             }
-            if (piece.type == PieceType.Rook)
+            if (piece.type == PieceType.Rook || piece.type == PieceType.Queen)
             {
                 if (piece.isWhite && !net.enemyInfo.isWhite)
                 {
@@ -544,13 +543,13 @@ class Program
                             start = Math.Min((int)nextPos.Y, (int)piece.pos.Y);
                             end = Math.Max((int)nextPos.Y, (int)piece.pos.Y);
                         }
-                        for (int i = start + 1; i < end - 1; i++)
+                        for (int i = start+1; i < end; i++)
                         {
                             if (horizontal && getAtPosition(i, (int)piece.pos.Y) != null)
                             {
                                 pathObstructed = true;
                             }
-                            else if (!horizontal && getAtPosition((int)piece.pos.Y, i) != null)
+                            else if (!horizontal && getAtPosition((int)piece.pos.X, i) != null)
                             {
                                 pathObstructed = true;
                             }
@@ -579,13 +578,13 @@ class Program
                             start = Math.Min((int)nextPos.Y, (int)piece.pos.Y);
                             end = Math.Max((int)nextPos.Y, (int)piece.pos.Y);
                         }
-                        for (int i = start + 1; i < end - 1; i++)
+                        for (int i = start+1; i < end; i++)
                         {
                             if (horizontal && getAtPosition(i, (int)piece.pos.Y) != null)
                             {
                                 pathObstructed = true;
                             }
-                            else if (!horizontal && getAtPosition((int)piece.pos.Y, i) != null)
+                            else if (!horizontal && getAtPosition((int)piece.pos.X, i) != null)
                             {
                                 pathObstructed = true;
                             }
@@ -601,13 +600,27 @@ class Program
                     }
                 }
             }
-            if (piece.type == PieceType.Queen)
-            {
-
-            }
             if (piece.type == PieceType.King)
             {
-
+                if (piece.isWhite && !net.enemyInfo.isWhite)
+                {
+                    if (Math.Abs(nextPos.X - piece.pos.X) < 2 && Math.Abs(nextPos.Y - piece.pos.Y) < 2)
+                    {
+                        if (getAtPosition((int)movePos.X, (int)movePos.Y) != null)
+                        {
+                            chesspieces.Remove(getAtPosition((int)movePos.X, (int)movePos.Y));
+                        }
+                        return true;
+                    }
+                }
+                else if (!piece.isWhite && net.enemyInfo.isWhite)
+                {
+                    if (getAtPosition((int)movePos.X, (int)movePos.Y) != null)
+                    {
+                        chesspieces.Remove(getAtPosition((int)movePos.X, (int)movePos.Y));
+                    }
+                    return true;
+                }
             }
 
         }
