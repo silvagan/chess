@@ -110,14 +110,14 @@ class Program
             whitePieceTextures[(int)PieceType.King  ] = Raylib.LoadTexture("assets/images/chess pieces/w_king_png_128px.png");
             whitePieceTextures[(int)PieceType.Knight] = Raylib.LoadTexture("assets/images/chess pieces/w_knight_png_128px.png");
             whitePieceTextures[(int)PieceType.Rook  ] = Raylib.LoadTexture("assets/images/chess pieces/w_rook_png_128px.png");
-            whitePieceTextures[(int)PieceType.Queen ] = Raylib.LoadTexture("assets/images/chess pieces/w_rook_png_128px.png");
+            whitePieceTextures[(int)PieceType.Queen ] = Raylib.LoadTexture("assets/images/chess pieces/w_queen_png_128px.png");
 
             blackPieceTextures[(int)PieceType.Pawn  ] = Raylib.LoadTexture("assets/images/chess pieces/b_pawn_png_128px.png");
             blackPieceTextures[(int)PieceType.Bishop] = Raylib.LoadTexture("assets/images/chess pieces/b_bishop_png_128px.png");
             blackPieceTextures[(int)PieceType.King  ] = Raylib.LoadTexture("assets/images/chess pieces/b_king_png_128px.png");
             blackPieceTextures[(int)PieceType.Knight] = Raylib.LoadTexture("assets/images/chess pieces/b_knight_png_128px.png");
             blackPieceTextures[(int)PieceType.Rook  ] = Raylib.LoadTexture("assets/images/chess pieces/b_rook_png_128px.png");
-            blackPieceTextures[(int)PieceType.Queen ] = Raylib.LoadTexture("assets/images/chess pieces/b_rook_png_128px.png");
+            blackPieceTextures[(int)PieceType.Queen ] = Raylib.LoadTexture("assets/images/chess pieces/b_queen_png_128px.png");
         }
 
         while (!Raylib.WindowShouldClose())
