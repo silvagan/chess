@@ -1,6 +1,8 @@
 ﻿using Raylib_cs;
+using System.Drawing;
 using System.Net;
 using System.Numerics;
+using Color = Raylib_cs.Color;
 
 namespace chess;
 
@@ -17,7 +19,7 @@ class Program
         var net = new ChessClient(myCursor, enemyCursor);
 
         Console.WriteLine($"Listening on port: {net.getPort()}");
-        net.enemyEndpoint = new IPEndPoint(IPAddress.Parse("192.168.0.103"), 8080);
+        net.enemyEndpoint = new IPEndPoint(IPAddress.Parse("192.168.0.106"), 8080);
 
         chesspieces.Add(new Chesspiece(i++, new Vector2(0, 0), PieceType.Rook, true));
         chesspieces.Add(new Chesspiece(i++, new Vector2(1, 0), PieceType.Knight, true));
@@ -68,8 +70,25 @@ class Program
 
             Raylib.DrawFPS(12, 12);
             Raylib.HideCursor();
-            
-            DrawBoard(new Vector2(0, 0), WindowSize);
+
+            Vector2 min = new Vector2(0, 0);
+            Vector2 max = WindowSize;
+            float targetWidth = 11;
+            float targetHeight = 8;
+            float avaliableWidth = (max - min).X;
+            float avaliableHeight = (max - min).Y;
+            float size = Math.Min(avaliableWidth / targetWidth, avaliableHeight / targetHeight);
+            Vector2 offset = new Vector2((max.X - (int)(size * 11)) / 2, (max.Y - (int)(size * 8)) / 2);
+
+            DrawBoard(new Vector2(0, 0), WindowSize, offset);
+
+            if (Raylib.IsMouseButtonPressed(MouseButton.Left))
+            {
+                Vector2 position = Raylib.GetMousePosition();
+                Vector2 sector = ((position - offset)/size) - new Vector2(size / 20, size / 20)/100;
+                Console.WriteLine(sector);
+
+            }
 
             Raylib.DrawCircleV(myCursor.pos, 10, Color.Black);
             Raylib.DrawCircleV(enemyCursor.pos, 10, Color.Red);
@@ -81,48 +100,61 @@ class Program
         Raylib.CloseWindow();
     }
 
-    public static void DrawBoard(Vector2 min, Vector2 max)
+    public static void DrawBoard(Vector2 min, Vector2 max, Vector2 offset)
     {
-        float tileSize = (int)Math.Min(max.X - min.X, max.Y - min.Y) / 8;
-        Vector2 offset = new Vector2((max.X - (int)(tileSize * 8 + tileSize / 8))/2 + tileSize/10, (max.Y - (int)(tileSize * 8 + tileSize/10))/2+ tileSize / 8);
-        Raylib.DrawRectangle((int)0, (int)offset.Y-10, (int)(tileSize * 11), (int)(tileSize * 8 + tileSize / 8), Color.LightGray);
+        Rlgl.PushMatrix();
+        float targetWidth = 11;
+        float targetHeight = 8;
+
+        float avaliableWidth = (max - min).X;
+        float avaliableHeight = (max - min).Y;
+
+        float size = Math.Min(avaliableWidth / targetWidth, avaliableHeight / targetHeight);
+
+        Rlgl.Translatef(offset.X, offset.Y, 0);
+
+
+        Raylib.DrawRectangle((int)0, (int)0, (int)(size * 11), (int)(size * 8 + size / 8), Color.LightGray);
         for (int i = 0; i < 8; i++)
         {
             for (int j = 0; j < 8; j++)
             {
                 if (((i % 2) ^ (j % 2)) == 0)
-                    Raylib.DrawRectangle((int)(tileSize*i) + 10, (int)(tileSize * j + offset.Y), (int)(tileSize * 0.9), (int)(tileSize * 0.9), Color.White);
+                    Raylib.DrawRectangle((int)(size*i) + (int)size/10, (int)(size * j)  + (int)size/10, (int)(size * 0.9), (int)(size * 0.9), Color.White);
                 else
-                    Raylib.DrawRectangle((int)(tileSize * i) + 10, (int)(tileSize * j + offset.Y), (int)(tileSize * 0.9), (int)(tileSize * 0.9), Color.Black);
+                    Raylib.DrawRectangle((int)(size * i) + (int)size / 10, (int)(size * j) + (int)size / 10, (int)(size * 0.9), (int)(size * 0.9), Color.Black);
             }
         }
-
-        foreach(Chesspiece piece in chesspieces)
+        Raylib.DrawRectangle((int)size * 10, (int)(0 + 10), (int)(size), (int)(size / 2), Color.Gray);
+        Raylib.DrawRectangle((int)size * 10, (int)(0 + 10), (int)(size), (int)(size / 2), Color.Gray);
+        float center = (float)(size / 2 * 0.9 +(int)size / 10);
+        foreach (Chesspiece piece in chesspieces)
         {
             if (piece.type == PieceType.Pawn)
             {
-                Raylib.DrawCircle((int)(tileSize * (piece.pos.X + 0.5)) + 4, (int)(tileSize * (piece.pos.Y + 0.5) + offset.Y) - 4, tileSize / 4, Color.DarkGray);
+                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Color.DarkGray);
             }
             if (piece.type == PieceType.Rook)
             {
-                Raylib.DrawCircle((int)(tileSize * (piece.pos.X + 0.5)) + 4, (int)(tileSize * (piece.pos.Y + 0.5) + offset.Y) - 4, tileSize / 4, Color.DarkPurple);
+                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Color.DarkPurple);
             }
             if (piece.type == PieceType.Bishop)
             {
-                Raylib.DrawCircle((int)(tileSize * (piece.pos.X + 0.5)) + 4, (int)(tileSize * (piece.pos.Y + 0.5) + offset.Y) - 4, tileSize / 4, Color.DarkBlue);
+                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Color.DarkBlue);
             }
             if (piece.type == PieceType.Knight)
             {
-                Raylib.DrawCircle((int)(tileSize * (piece.pos.X + 0.5)) + 4, (int)(tileSize * (piece.pos.Y + 0.5) + offset.Y) - 4, tileSize / 4, Color.DarkGreen);
+                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Color.DarkGreen);
             }
             if (piece.type == PieceType.King)
             {
-                Raylib.DrawCircle((int)(tileSize * (piece.pos.X + 0.5)) + 4, (int)(tileSize * (piece.pos.Y + 0.5) + offset.Y) - 4, tileSize / 4, Color.Red);
+                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Color.Red);
             }
             if (piece.type == PieceType.Queen)
             {
-                Raylib.DrawCircle((int)(tileSize * (piece.pos.X + 0.5)) + 4, (int)(tileSize * (piece.pos.Y + 0.5) + offset.Y) - 4, tileSize / 4, Color.DarkBrown);
+                Raylib.DrawCircle((int)(size * piece.pos.X)+ (int)center, (int)(size * piece.pos.Y)+ (int)center, size / 4, Color.DarkBrown);
             }
         }
+        Rlgl.PopMatrix();
     }
 }
