@@ -86,6 +86,7 @@ namespace chess
     public class SentMatchRequest
     {
         public bool received = false;
+        public bool rejected = false;
         // TODO: public bool timeout = false;
         
         public EndPoint remote;
@@ -124,8 +125,8 @@ namespace chess
         public float cursorUpdateRate = 20; // Updates per second
         public float cursorLerpStrength = 25;
 
-        SentMatchRequest? sentMatchRequest = null;
-        ReceivedMatchRequest? receivedMatchRequest = null;
+        public SentMatchRequest? sentMatchRequest = null;
+        public ReceivedMatchRequest? receivedMatchRequest = null;
 
         public ChessClient(PlayerCursor myCursor, PlayerCursor enemyCursor, UInt16 port = 8080)
         {
@@ -227,6 +228,7 @@ namespace chess
             {
                 if (sentMatchRequest != null)
                 {
+                    sentMatchRequest.rejected = true;
                     sentMatchRequest = null;
                 }
             }
@@ -344,22 +346,23 @@ namespace chess
             };
         }
 
-        public SentMatchRequest SendMatchRequest(IPEndPoint remote)
+        public void SendMatchRequest(IPEndPoint remote)
         {
             Debug.Assert(sentMatchRequest == null);
 
             var matchRequest = new SentMatchRequest();
+            matchRequest.remote = remote;
 
             SendMessage(remote, MessageType.RequestMatch, null);
 
             sentMatchRequest = matchRequest;
-
-            return matchRequest;
         }
 
-        public void CancelMatchRequest(IPEndPoint remote)
+        public void CancelMatchRequest()
         {
-            SendMessage(remote, MessageType.CancelMatch, null);
+            if (sentMatchRequest == null) return;
+
+            SendMessage(sentMatchRequest.remote, MessageType.CancelMatch, null);
 
             sentMatchRequest = null;
         }
@@ -369,6 +372,7 @@ namespace chess
             if (receivedMatchRequest == null) return;
 
             SendMessage(receivedMatchRequest.remote, MessageType.AcceptMatch, null);
+            enemyEndpoint = receivedMatchRequest.remote;
 
             receivedMatchRequest = null;
         }
@@ -380,11 +384,6 @@ namespace chess
             SendMessage(receivedMatchRequest.remote, MessageType.RejectMatch, null);
 
             receivedMatchRequest = null;
-        }
-
-        public ReceivedMatchRequest? GetIncomingMatchRequest()
-        {
-            return this.receivedMatchRequest;
         }
 
         public EnemyInfo? GetEnemy()
