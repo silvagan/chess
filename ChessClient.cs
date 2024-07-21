@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Numerics;
+using System.Diagnostics.Contracts;
 
 namespace chess
 {
@@ -78,13 +79,32 @@ namespace chess
         public DateTime sentAt;
 
         public EndPoint remote;
+        public MessageType type;
         public UInt16 id;
     };
 
-    public class MatchRequest
+    public class SentMatchRequest
     {
+        public bool received = false;
+        // TODO: public bool timeout = false;
+        
         public EndPoint remote;
+    };
+
+    public class ReceivedMatchRequest
+    {
         public bool cancelled = false;
+
+        public EndPoint remote;
+    };
+
+    public class EnemyInfo
+    {
+        public EndPoint endpoint;
+
+        // TODO:
+        // public uint ping;
+        // public Profile profile;
     };
 
     internal class ChessClient
@@ -98,31 +118,51 @@ namespace chess
         public EndPoint? enemyEndpoint;
 
         DateTime? lastCursorSentAt;
+        Vector2 targetEnemyPos;
         public PlayerCursor myCursor;
         public PlayerCursor enemyCursor;
-        public float cursorUpdateRate = 10; // Updates per second
+        public float cursorUpdateRate = 20; // Updates per second
+        public float cursorLerpStrength = 25;
 
-        MatchRequest? sentMatchRequest = null;
-        MatchRequest? receivedMatchRequest = null;
+        SentMatchRequest? sentMatchRequest = null;
+        ReceivedMatchRequest? receivedMatchRequest = null;
 
-        public ChessClient(PlayerCursor myCursor, PlayerCursor enemyCursor, int port = 8080)
+        public ChessClient(PlayerCursor myCursor, PlayerCursor enemyCursor, UInt16 port = 8080)
         {
             this.myCursor = myCursor;
             this.enemyCursor = enemyCursor;
+
+            targetEnemyPos = enemyCursor.pos;
 
             unackedMessages = new List<AckableMessage>();
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.Blocking = false;
 
-            var address = IPAddress.Any;
             try
             {
-                socket.Bind(new IPEndPoint(address, port));
+                socket.Bind(new IPEndPoint(IPAddress.Any, port));
             }
             catch (SocketException)
             {
-                socket.Bind(new IPEndPoint(address, 0));
+                socket.Bind(new IPEndPoint(IPAddress.Any, 0));
             }
+        }
+
+        public static bool IsPortUsed(UInt16 port)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            try
+            {
+                socket.Bind(new IPEndPoint(IPAddress.Any, port));
+            } catch (SocketException)
+            {
+                return true;
+            } finally
+            {
+                socket.Close();
+            }
+
+            return false;
         }
 
         public UInt16 getPort()
@@ -155,15 +195,15 @@ namespace chess
             {
                 var payload = CursorPayload.Decode(msg.payload);
 
-                enemyCursor.pos = new Vector2(payload.x, payload.y);
+                targetEnemyPos = new Vector2(payload.x, payload.y);
                 enemyCursor.chessPiece = payload.chessPieceId;
                 enemyCursor.type = payload.type;
             }
-            else if (msg.type == MessageType.AcceptMatch)
+            else if (msg.type == MessageType.RequestMatch)
             {
                 if (receivedMatchRequest == null)
                 {
-                    receivedMatchRequest = new MatchRequest();
+                    receivedMatchRequest = new ReceivedMatchRequest();
                     receivedMatchRequest.remote = msg.remote;
                 }
             }
@@ -175,10 +215,32 @@ namespace chess
                     receivedMatchRequest = null;
                 }
             }
+            else if (msg.type == MessageType.AcceptMatch)
+            {
+                if (sentMatchRequest != null)
+                {
+                    enemyEndpoint = sentMatchRequest.remote;
+                    sentMatchRequest = null;
+                }
+            }
+            else if (msg.type == MessageType.RejectMatch)
+            {
+                if (sentMatchRequest != null)
+                {
+                    sentMatchRequest = null;
+                }
+            }
         }
 
         void OnMessageAcked(AckableMessage msg)
         {
+            if (msg.type == MessageType.RequestMatch)
+            {
+                if (sentMatchRequest != null)
+                {
+                    sentMatchRequest.received = true;
+                } 
+            }
         }
 
         void SendMessage(EndPoint remote, MessageType type, Span<byte> payload)
@@ -233,6 +295,7 @@ namespace chess
                 {
                     remote = remote,
                     id = id.Value,
+                    type = type,
                     sentAt = DateTime.Now
                 });
             }
@@ -281,11 +344,11 @@ namespace chess
             };
         }
 
-        public MatchRequest SendMatchRequest(IPEndPoint remote)
+        public SentMatchRequest SendMatchRequest(IPEndPoint remote)
         {
             Debug.Assert(sentMatchRequest == null);
 
-            var matchRequest = new MatchRequest();
+            var matchRequest = new SentMatchRequest();
 
             SendMessage(remote, MessageType.RequestMatch, null);
 
@@ -319,7 +382,22 @@ namespace chess
             receivedMatchRequest = null;
         }
 
-        public void Update()
+        public ReceivedMatchRequest? GetIncomingMatchRequest()
+        {
+            return this.receivedMatchRequest;
+        }
+
+        public EnemyInfo? GetEnemy()
+        {
+            if (enemyEndpoint == null) return null;
+
+            return new EnemyInfo
+            {
+                endpoint = enemyEndpoint
+            };
+        }
+
+        public void Update(float dt)
         {
             if (enemyEndpoint != null)
             {
@@ -327,37 +405,48 @@ namespace chess
                 var now = DateTime.Now;
                 if (lastCursorSentAt == null)
                 {
-                    lastCursorSentAt = now.Subtract(TimeSpan.FromSeconds(1 / cursorUpdateRate));
+                    lastCursorSentAt = now.Subtract(cursorUpdateInterval);
                 }
 
                 if (now.Subtract(lastCursorSentAt.Value) > cursorUpdateInterval)
                 {
                     var payload = CursorPayload.FromPlayerCursor(myCursor);
                     SendMessage(enemyEndpoint, MessageType.Cursor, payload.Encode());
+                    lastCursorSentAt = now;
                 }
+
+                enemyCursor.pos = Vector2.Lerp(enemyCursor.pos, targetEnemyPos, cursorLerpStrength * dt);
             }
 
-            if (socket.Available > 0)
+            if (socket.Poll(0, SelectMode.SelectRead))
             {
-                var receivedMessage = ReceiveMessage();
+                // TODO: Remove this try catch
+                try
+                {
+                    var receivedMessage = ReceiveMessage();
 
-                if (receivedMessage.type == MessageType.Ack) {
-                    foreach (var msg in unackedMessages)
-                    {
-                        if (msg.id == receivedMessage.id)
+                    if (receivedMessage.type == MessageType.Ack) {
+                        foreach (var msg in unackedMessages)
                         {
-                            msg.acked = true;
-                            OnMessageAcked(msg);
-                            break;
+                            if (msg.id == receivedMessage.id)
+                            {
+                                msg.acked = true;
+                                OnMessageAcked(msg);
+                                break;
+                            }
                         }
+
+                    } else {
+
+                        OnMessageReceived(receivedMessage);
                     }
 
-                } else {
+                } catch (SocketException)
+                {
 
-                    OnMessageReceived(receivedMessage);
                 }
             }
-            
+
             // TODO: Add retransmittion to messages which were not acked
 
             for (int i = 0; i < unackedMessages.Count; i++)
