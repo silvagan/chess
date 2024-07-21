@@ -50,27 +50,29 @@ class Program
             firstTimeSetup = true;
         }
 
+        //-----------------------------------------------------------------
         net = new ChessClient(myCursor, enemyCursor, myPort);
-        //net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
+        net.enemyEndpoint = new IPEndPoint(IPAddress.Loopback, enemyPort);
+        //----------------------^------------------------------------------
 
         {
             int i = 0;
-            chesspieces.Add(new Chesspiece(i++, new Vector2(0, 0), PieceType.Rook, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(1, 0), PieceType.Knight, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(2, 0), PieceType.Bishop, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(7, 0), PieceType.Rook, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(6, 0), PieceType.Knight, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(5, 0), PieceType.Bishop, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(0, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(1, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(2, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(5, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(6, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(7, 1), PieceType.Pawn, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 0), PieceType.King, true));
-            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 0), PieceType.Queen, true));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(0, 0), PieceType.Rook, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(1, 0), PieceType.Knight, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(2, 0), PieceType.Bishop, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(7, 0), PieceType.Rook, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(6, 0), PieceType.Knight, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(5, 0), PieceType.Bishop, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(0, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(1, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(2, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(5, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(6, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(7, 1), PieceType.Pawn, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(3, 0), PieceType.King, false));
+            chesspieces.Add(new Chesspiece(i++, new Vector2(4, 0), PieceType.Queen, false));
 
             chesspieces.Add(new Chesspiece(i++, new Vector2(0, 7), PieceType.Rook, true));
             chesspieces.Add(new Chesspiece(i++, new Vector2(1, 7), PieceType.Knight, true));
@@ -358,23 +360,79 @@ class Program
 
     public static bool MoveValid(Chesspiece piece, Vector2 nextPos)
     {
-        if (piece.type == PieceType.Pawn)
+        if (0 <= nextPos.X && nextPos.X <= 7 && 0 <= nextPos.Y && nextPos.Y <= 7)
         {
-            if (piece.isWhite)
+            if (piece.type == PieceType.Pawn)
             {
-                if (nextPos == new Vector2(piece.pos.X, piece.pos.Y - 1))
-                    return true;
-                else if (nextPos == new Vector2(piece.pos.X - 1, piece.pos.Y - 1) && getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y - 1) != null)
+                if (piece.isWhite)
                 {
-                    chesspieces.Remove(getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y - 1));
-                    return true;
+                    if (piece.pos.Y == 6 && nextPos == new Vector2(piece.pos.X, piece.pos.Y - 2) && getAtPosition((int)piece.pos.X, (int)piece.pos.Y - 2) == null)
+                        return true;
+                    if (nextPos == new Vector2(piece.pos.X, piece.pos.Y - 1) && getAtPosition((int)piece.pos.X, (int)piece.pos.Y - 1) == null)
+                        return true;
+                    else if (nextPos == new Vector2(piece.pos.X - 1, piece.pos.Y - 1) && getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y - 1) != null)
+                    {
+                        chesspieces.Remove(getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y - 1));
+                        return true;
+                    }
+                    else if (nextPos == new Vector2(piece.pos.X + 1, piece.pos.Y - 1) && getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y - 1) != null)
+                    {
+                        chesspieces.Remove(getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y - 1));
+                        return true;
+                    }
                 }
-                else if (nextPos == new Vector2(piece.pos.X + 1, piece.pos.Y - 1) && getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y - 1) != null)
+                else
                 {
-                    chesspieces.Remove(getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y - 1));
-                    return true;
+                    if (piece.pos.Y == 1 && nextPos == new Vector2(piece.pos.X, piece.pos.Y + 2) && getAtPosition((int)piece.pos.X, (int)piece.pos.Y + 2) == null)
+                        return true;
+                    if (nextPos == new Vector2(piece.pos.X, piece.pos.Y + 1) && getAtPosition((int)piece.pos.X, (int)piece.pos.Y + 1) == null)
+                        return true;
+                    else if (nextPos == new Vector2(piece.pos.X + 1, piece.pos.Y + 1) && getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y + 1) != null)
+                    {
+                        chesspieces.Remove(getAtPosition((int)piece.pos.X + 1, (int)piece.pos.Y + 1));
+                        return true;
+                    }
+                    else if (nextPos == new Vector2(piece.pos.X - 1, piece.pos.Y + 1) && getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y + 1) != null)
+                    {
+                        chesspieces.Remove(getAtPosition((int)piece.pos.X - 1, (int)piece.pos.Y + 1));
+                        return true;
+                    }
                 }
             }
+            if (piece.type == PieceType.Bishop)
+            {
+                if (piece.isWhite)
+                {
+                    if (Math.Abs(nextPos.X - piece.pos.X) == Math.Abs(nextPos.Y - piece.pos.Y))
+                    {
+                        for (int i = Math.Min((int)piece.pos.X, (int)nextPos.X); i < Math.Max((int)piece.pos.X, (int)nextPos.X); i++)
+                        {
+
+                        }
+                    }
+                }
+                else
+                {
+
+                }
+            }
+            if (piece.type == PieceType.Knight)
+            {
+
+            }
+            if (piece.type == PieceType.Rook)
+            {
+
+            }
+            if (piece.type == PieceType.Queen)
+            {
+
+            }
+            if (piece.type == PieceType.King)
+            {
+
+            }
+
         }
         return false;
     }
