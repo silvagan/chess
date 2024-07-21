@@ -1,10 +1,12 @@
 ﻿using Raylib_CsLo;
+using System.Diagnostics;
 using System.Numerics;
+using System.Text;
 using System.Text.Json;
 
 namespace chess
 {
-    internal class Profile
+    public class Profile
     {
         public string name { get; set; }
         public int WinCount { get; set; }
@@ -63,6 +65,28 @@ namespace chess
             LossCount = loadedProfile.LossCount;
 
             return true;
+        }
+
+        public byte[] Encode()
+        {
+            var nameBytes = Encoding.ASCII.GetBytes(name);
+            byte[] payload = new byte[4 + 4 + 4 + nameBytes.Length];
+            BitConverter.GetBytes(WinCount).CopyTo(payload, 0);
+            BitConverter.GetBytes(LossCount).CopyTo(payload, 4);
+            BitConverter.GetBytes(nameBytes.Length).CopyTo(payload, 8);
+            nameBytes.CopyTo(payload, 12);
+            return payload;
+        }
+
+        public static Profile Decode(byte[] payload)
+        {
+            var winCount = BitConverter.ToInt32(payload, 0);
+            var lossCount = BitConverter.ToInt32(payload, 4);
+            var nameLength = BitConverter.ToInt32(payload, 8);
+            var name = Encoding.ASCII.GetString(payload, 12, nameLength);
+            Debug.Assert(name != null);
+
+            return new Profile(name, winCount, lossCount);
         }
     }
 }
